@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="Chart.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Verdana;
+        }
+
+        .collapsible {
+            /* color: white; */
+            color: white;
+            cursor: pointer;
+            padding: 18px;
+            width: 100%;
+            border: none;
+            text-align: left;
+            outline: none;
+            font-size: 15px;
+            display: block;
+        }
+
+        button {
+            background: transparent;
+            font-family: Verdana;
+        }
+
+        .year-btn {
+            font-size: 16px;
+            padding-left: 10px;
+        }
+
+        .month-btn {
+            font-size: 14px;
+            padding-left: 15px;
+        }
+
+        .day-a {
+            font-size: 12px;
+            padding-left: 20px;
+            color: white;
+            text-decoration: none;
+            display: block;
+            width: 100%;
+        }
+
+        .collapsible {
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .left-sidebar {
+            background: rgb(17, 24, 39);
+            height: 100vh;
+            color: white;
+            min-width: 200px;
+            position: fixed;
+        }
+
+        .collapsible:not(.active)::after {
+            content: "V";
+            display: inline-block;
+            transform: rotate(-90deg);
+            font-size: 15px;
+        }
+
+        .collapsible.active::after {
+            content: "V";
+            font-size: 15px;
+        }
+
+        .content {
+            display: none;
+            overflow: hidden;
+        }
+
+        .sidebar-expander {
+            position: fixed;
+            left: 15px;
+            bottom: 5px;
+            color: white;
+            z-index: 100;
+            display: none;
+        }
+
+        #measurementsContent {
+            height: 100vh;
+            margin-left: 200px;
+        }
+
+        .chart-title {
+            padding: 10px 0 0 10px;
+        }
+
+        @media (max-width: 850px) {
+            .hidden {
+                display: none;
+            }
+
+            .sidebar-expander {
+                display: block;
+                background: white;
+                color: black;
+            }
+
+            .left-sidebar {
+                width: 150px;
+            }
+
+            #measurementsContent {
+                margin-left: 0;
+            }
+
+            .chart-title {
+                text-align: center;
+                padding: 10px 0 0;
+            }
+        }
+
+        .wifi-btn {
+            background: #5637DE;
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            padding: 10px;
+            border: none;
+            border-radius: 6px;
+            font-family: Verdana;
+        }
+
+        .btn-wrapper {
+            padding: 10px;
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="content-wrapper">
+        <button class="sidebar-expander" id="sidebarExpander">Show</button>
+        <div class="left-sidebar hidden" id="leftSidebar">
+            <div class="btn-wrapper"><a href="/wifi" class="wifi-btn">Edit Wi-Fi</a></div>
+        </div>
+        <div id="measurementsContent">
+            <div class="chart-title">Sensor 1</div>
+            <canvas id="tempChart" style="width:100%;max-width:600px"></canvas>
+            <canvas id="humidChart" style="width:100%;max-width:600px"></canvas>
+            <div class="chart-title">Sensors 2</div>
+            <canvas id="tempChart1" style="width:100%;max-width:600px"></canvas>
+            <canvas id="humidChart1" style="width:100%;max-width:600px"></canvas>
+            <div class="chart-title">Sensors 3</div>
+            <canvas id="tempChart2" style="width:100%;max-width:600px"></canvas>
+            <canvas id="humidChart2" style="width:100%;max-width:600px"></canvas>
+        </div>
+    </div>
+
+    <script>
+        var xValues = [];
+        var yValues = [[], [], []];
+        var zValues = [[], [], []];
+        const getMeasurements = async (measurementName) => {
+            fetch(`/measurement?measurementName=${measurementName}`)
+                .then(response =>
+                    response.text()
+                )
+                .then(_data => {
+                    // document.getElementById("test").innerHTML = JSON.parse(data).maxTemperature[0];
+                    xValues = [];
+                    yValues = [[], [], []];
+                    zValues = [[], [], []];
+                    if (_data.startsWith(",")) {
+                        _data.slice(1);
+                    }
+                    generateData(JSON.parse(`{"data":[${_data.startsWith(',') ? _data.slice(1) : _data}]}`).data);
+
+                    new Chart("tempChart", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(0,0,255,0.5)",
+                                data: yValues[0]
+                            }]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "temperature",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 15, max: 45 } }]
+                            }
+                        }
+                    });
+
+                    new Chart("humidChart", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(255,0,0,0.5)",
+                                data: zValues[0]
+                            },]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "humidity",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 20, max: 80 } }]
+                            }
+                        }
+                    });
+
+                    new Chart("tempChart1", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(0,0,255,0.5)",
+                                data: yValues[1]
+                            }]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "temperature",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 15, max: 45 } }]
+                            }
+                        }
+                    });
+
+                    new Chart("humidChart1", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(255,0,0,0.5)",
+                                data: zValues[1]
+                            },]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "humidity",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 20, max: 80 } }]
+                            }
+                        }
+                    });
+
+                    new Chart("tempChart2", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(0,0,255,0.5)",
+                                data: yValues[2]
+                            }]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "temperature",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 15, max: 45 } }]
+                            }
+                        }
+                    });
+
+                    new Chart("humidChart2", {
+                        type: "line",
+                        data: {
+                            labels: xValues,
+                            datasets: [{
+                                fill: false,
+                                pointRadius: 2,
+                                borderColor: "rgba(255,0,0,0.5)",
+                                data: zValues[2]
+                            },]
+                        },
+                        options: {
+                            legend: { display: false },
+                            title: {
+                                display: true,
+                                text: "humidity",
+                                fontSize: 16
+                            },
+                            scales: {
+                                yAxes: [{ ticks: { min: 20, max: 80 } }]
+                            }
+                        }
+                    });
+                })
+        }
+
+        function generateData(measurements) {
+            measurements.forEach(measurement => {
+                const _date = new Date(measurement.date * 1000 - 2 * 60 * 60 * 1000);
+                for (let i = 0; i < 3; i++) {
+                    yValues[i].push(measurement.currentTemperature[i]);
+                    zValues[i].push(measurement.currentHumidity[i]);
+                }
+                xValues.push(`${_date.getHours()}:${_date.getMinutes() < 10 ? "0" + _date.getMinutes() : _date.getMinutes()}`);
+            })
+        }      
+    </script>
+    <script>
+        fetch('/measurements-list')
+            .then(response =>
+                response.text()
+            )
+            .then(files => {
+                const sidebar = document.getElementById("leftSidebar");
+                const years = new Set();
+                const months = new Set();
+                files = JSON.parse(files);
+                files.sort(function (a, b) {
+                    var aa = a.split('-').reverse().join(),
+                        bb = b.split('-').reverse().join();
+                    return aa < bb ? 1 : (aa > bb ? -1 : 0);
+                });
+                files.forEach(fileName => {
+                    const splittedFileNames = fileName.split('-');
+
+                    if (!years.has(splittedFileNames[2])) {
+                        sidebar.innerHTML += `<button type="button" class="collapsible year-btn">${splittedFileNames[2]}</button><div class="content" id="year-${splittedFileNames[2]}"></div>`;
+                        years.add(splittedFileNames[2]);
+                    }
+                    if (!months.has(splittedFileNames[1])) {
+                        var dateParts = fileName.split("-");
+                        var date = new Date(dateParts[2], dateParts[1] - 1, dateParts[0]);
+                        var monthName = date.toLocaleString('default', { month: 'long' });
+
+                        let yearButton = document.getElementById(`year-${splittedFileNames[2]}`);
+                        yearButton.innerHTML += `<button type="button" class="collapsible month-btn">${monthName}</button><div class="content" id="month-${splittedFileNames[1]}"></div>`;
+                        months.add(splittedFileNames[1]);
+                    }
+                    let monthButton = document.getElementById(`month-${splittedFileNames[1]}`);
+                    monthButton.innerHTML += `<a class="day-a" onclick="getMeasurements('${fileName}')">${fileName}</a>`;
+                })
+                initCollapsibles();
+                getMeasurements(files[0]);
+            })
+
+    </script>
+    <script>
+        function initCollapsibles() {
+            var coll = document.getElementsByClassName("collapsible");
+            var sidebarExpander = document.getElementById("sidebarExpander");
+            var leftSidebar = document.getElementById("leftSidebar");
+            var measurementsContent = document.getElementById("measurementsContent");
+            var isSidebarShown = false;
+            var i;
+
+            sidebarExpander.addEventListener("click", () => {
+                isSidebarShown = !isSidebarShown;
+                isSidebarShown ? leftSidebar.classList.remove('hidden') : leftSidebar.classList.add('hidden');
+                sidebarExpander.innerHTML = isSidebarShown ? "Hide" : "Show";
+            });
+
+            measurementsContent.addEventListener("click", () => {
+                isSidebarShown = false;
+                leftSidebar.classList.add('hidden');
+            })
+
+            for (i = 0; i < coll.length; i++) {
+                coll[i].addEventListener("click", function () {
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.display === "block") {
+                        content.style.display = "none";
+                    } else {
+                        content.style.display = "block";
+                    }
+                });
+            }
+        }
+    </script>
+</body>
+
+</html>

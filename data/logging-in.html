@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .wrapper {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-size: 2rem;
+            flex-direction: column;
+            gap: 20px;
+            font-family: Verdana;
+            color: #6b7280;
+        }
+
+        .lds-dual-ring {
+            display: inline-block;
+            width: 80px;
+            height: 80px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 64px;
+            height: 64px;
+            margin: 8px;
+            border-radius: 50%;
+            border: 6px solid #6b7280;
+            border-color: #6b7280 transparent #6b7280 transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="wrapper">
+        <div id="info">Logging in...</div>
+        <div class="lds-dual-ring"></div>
+    </div>
+    <script>
+        let infoBlock = document.getElementById("info");
+        let tries = 0;
+        setInterval(() => {
+            tries++;
+            fetch('/check-wifi-status').then(res =>
+                res.text()
+            ).then(wifiStatus => {
+                if (JSON.parse(wifiStatus).isLoggedIn !== "false") {
+                    window.location.href = "/home";
+                } else if (tries > 25) {
+                    infoBlock.innerHTML = "Couldn't connect to WiFi, offline mode";
+                    setTimeout(() => {
+                        window.location.href = "/home";
+                    }, 1500)
+                }
+            })
+        }, 500);
+
+    </script>
+</body>
+
+</html>
